@@ -1,0 +1,283 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ==================== AUTH ====================
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ==================== USER ====================
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts     Account[]
+  sessions     Session[]
+  profiles     SearchProfile[]
+  jobs         UserJob[]
+  subscription Subscription?
+  exports      SheetExport[]
+  leads        Lead[]
+}
+
+// ==================== JOB SEARCH ====================
+
+model SearchProfile {
+  id           String   @id @default(cuid())
+  userId       String
+  name         String
+  resumeText   String?  @db.Text
+  keywords     String[] @default([])
+  locations    String[] @default([])
+  dealBreakers String[] @default([])
+  minSalary    Int?
+  maxSalary    Int?
+  remote       Boolean  @default(false)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobs UserJob[]
+
+  @@index([userId])
+}
+
+model Job {
+  id          String    @id @default(cuid())
+  externalId  String    @unique
+  source      String
+  title       String
+  company     String
+  location    String?
+  description String    @db.Text
+  salary      String?
+  url         String
+  postedAt    DateTime?
+  remote      Boolean   @default(false)
+  scrapedAt   DateTime  @default(now())
+
+  userJobs UserJob[]
+
+  @@index([source])
+  @@index([postedAt])
+}
+
+model UserJob {
+  id        String    @id @default(cuid())
+  userId    String
+  jobId     String
+  profileId String?
+  aiScore   Int?
+  aiReason  String?   @db.Text
+  status    JobStatus @default(NEW)
+  flagged   Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job     Job            @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  profile SearchProfile? @relation(fields: [profileId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, jobId])
+  @@index([userId, status])
+  @@index([userId, aiScore])
+}
+
+enum JobStatus {
+  NEW
+  SAVED
+  APPLIED
+  ARCHIVED
+}
+
+// ==================== BILLING ====================
+
+model Subscription {
+  id                   String             @id @default(cuid())
+  userId               String             @unique
+  stripeCustomerId     String?            @unique
+  stripeSubscriptionId String?            @unique
+  stripePriceId        String?
+  tier                 SubscriptionTier   @default(FREE)
+  status               SubscriptionStatus @default(TRIALING)
+  trialEndsAt          DateTime?
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean            @default(false)
+  jobsUsedToday        Int                @default(0)
+  jobsResetAt          DateTime           @default(now())
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum SubscriptionTier {
+  FREE
+  PRO
+  PREMIUM
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  EXPIRED
+}
+
+// ==================== EXPORTS ====================
+
+model SheetExport {
+  id            String   @id @default(cuid())
+  userId        String
+  spreadsheetId String
+  sheetName     String
+  jobCount      Int
+  exportedAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ==================== AI MARKETING AGENT ====================
+
+model Lead {
+  id          String     @id @default(cuid())
+  userId      String?
+  email       String     @unique
+  name        String?
+  source      String
+  status      LeadStatus @default(NEW)
+  score       Int?
+  notes       String?    @db.Text
+  lastContact DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  user             User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+  campaignContacts CampaignContact[]
+
+  @@index([status])
+  @@index([source])
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  ENGAGED
+  QUALIFIED
+  CONVERTED
+  CHURNED
+}
+
+model Campaign {
+  id        String         @id @default(cuid())
+  name      String
+  type      CampaignType
+  status    CampaignStatus @default(DRAFT)
+  content   Json
+  schedule  Json?
+  metrics   Json?
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  contacts CampaignContact[]
+}
+
+enum CampaignType {
+  EMAIL_DRIP
+  SOCIAL_POST
+  CONTENT_SEO
+  REFERRAL
+  PRODUCT_HUNT
+  RETARGETING
+}
+
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  ACTIVE
+  PAUSED
+  COMPLETED
+}
+
+model CampaignContact {
+  id         String    @id @default(cuid())
+  campaignId String
+  leadId     String
+  sentAt     DateTime?
+  openedAt   DateTime?
+  clickedAt  DateTime?
+  repliedAt  DateTime?
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  lead     Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, leadId])
+}
+
+// ==================== AUDIT LOG ====================
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  resource  String
+  details   Json?
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+}
