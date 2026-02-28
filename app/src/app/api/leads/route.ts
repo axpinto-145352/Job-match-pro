@@ -24,6 +24,8 @@ const leadSchema = z.object({
   source: z.string().min(1).max(100),
 })
 
+const VALID_LEAD_STATUSES = ["NEW", "CONTACTED", "ENGAGED", "QUALIFIED", "CONVERTED", "CHURNED"] as const
+
 // ---------------------------------------------------------------------------
 // GET /api/leads — List leads (admin only)
 // ---------------------------------------------------------------------------
@@ -50,12 +52,16 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10))
     const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") ?? "50", 10)))
-    const status = searchParams.get("status") ?? undefined
-    const source = searchParams.get("source") ?? undefined
+    const statusParam = searchParams.get("status")
+    const sourceParam = searchParams.get("source")
 
     const where: Record<string, unknown> = {}
-    if (status) where.status = status
-    if (source) where.source = source
+    if (statusParam && (VALID_LEAD_STATUSES as readonly string[]).includes(statusParam)) {
+      where.status = statusParam
+    }
+    if (sourceParam && sourceParam.length <= 100) {
+      where.source = sourceParam
+    }
 
     const skip = (page - 1) * limit
 

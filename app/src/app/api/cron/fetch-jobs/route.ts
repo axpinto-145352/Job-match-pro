@@ -56,7 +56,7 @@ async function fetchJobsForProfile(profile: {
  */
 async function scoreJobWithAI(
   job: FetchedJob,
-  profile: {
+  _profile: {
     resumeText: string | null
     keywords: string[]
     dealBreakers: string[]
@@ -64,7 +64,7 @@ async function scoreJobWithAI(
     maxSalary: number | null
   }
 ): Promise<{ score: number; reason: string }> {
-  // TODO: Implement AI scoring (e.g., using Anthropic Claude)
+  // TODO: Integrate with ai-scoring service for production
   console.log(
     `[Cron] Scoring job "${job.title}" at "${job.company}" against profile`
   )

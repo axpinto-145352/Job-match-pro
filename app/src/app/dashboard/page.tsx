@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from "react";
 import toast from "react-hot-toast";
 import {
   FiSearch,
-  FiFilter,
   FiGrid,
   FiList,
   FiBookmark,
@@ -14,7 +13,6 @@ import {
   FiChevronLeft,
   FiChevronRight,
   FiStar,
-  FiBriefcase,
   FiMapPin,
   FiClock,
   FiTrendingUp,

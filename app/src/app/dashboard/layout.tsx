@@ -1,6 +1,7 @@
 "use client";
 
 import { SessionProvider, useSession, signOut } from "next-auth/react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -141,9 +142,11 @@ function Sidebar({
         >
           <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
             {session?.user?.image ? (
-              <img
+              <Image
                 src={session.user.image}
                 alt={userName}
+                width={36}
+                height={36}
                 className="w-9 h-9 rounded-full object-cover"
               />
             ) : (
@@ -239,9 +242,11 @@ function MobileHeader() {
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-semibold text-xs">
             {session?.user?.image ? (
-              <img
+              <Image
                 src={session.user.image}
                 alt={userName}
+                width={32}
+                height={32}
                 className="w-8 h-8 rounded-full object-cover"
               />
             ) : (

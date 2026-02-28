@@ -8,12 +8,6 @@ import { fetchRemoteOKJobs } from './remoteok';
 // Types
 // ---------------------------------------------------------------------------
 
-interface FetchAllJobsOptions {
-  query: string;
-  location: string;
-  remote: boolean;
-}
-
 interface FetchAllJobsResult {
   jobs: NormalizedJob[];
   errors: string[];

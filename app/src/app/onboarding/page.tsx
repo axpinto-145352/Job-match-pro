@@ -591,8 +591,6 @@ export default function OnboardingPage() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [slideDirection, setSlideDirection] = useState<"left" | "right">("right");
-
   // Form state
   const [resume, setResume] = useState("");
   const [keywords, setKeywords] = useState<string[]>([]);
@@ -632,14 +630,12 @@ export default function OnboardingPage() {
   // Navigation
   const goNext = () => {
     if (currentStep < TOTAL_STEPS - 1) {
-      setSlideDirection("right");
       setCurrentStep((s) => s + 1);
     }
   };
 
   const goBack = () => {
     if (currentStep > 0) {
-      setSlideDirection("left");
       setCurrentStep((s) => s - 1);
     }
   };

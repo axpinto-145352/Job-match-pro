@@ -1,14 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import Stripe from "stripe"
 import prisma from "@/lib/prisma"
-
-// ---------------------------------------------------------------------------
-// Stripe client
-// ---------------------------------------------------------------------------
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2026-01-28.clover",
-})
+import { stripe as stripeClient } from "@/lib/stripe"
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
 
@@ -69,7 +62,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
+    event = stripeClient.webhooks.constructEvent(body, signature, webhookSecret)
   } catch (error) {
     console.error("[Webhook] Signature verification failed:", error)
     return NextResponse.json(
@@ -101,10 +94,11 @@ export async function POST(request: NextRequest) {
             : session.subscription.id
 
         // Fetch the full subscription to get price info
-        const stripeSub = await stripe.subscriptions.retrieve(subscriptionId)
+        const stripeSub = await stripeClient.subscriptions.retrieve(subscriptionId)
         const priceId = stripeSub.items.data[0]?.price?.id ?? ""
         const tier = tierFromPriceId(priceId) ?? "PRO"
 
+        const periodEnd = stripeSub.items.data[0]?.current_period_end
         await prisma.subscription.updateMany({
           where: { stripeCustomerId: customerId },
           data: {
@@ -112,7 +106,7 @@ export async function POST(request: NextRequest) {
             stripePriceId: priceId,
             tier,
             status: "ACTIVE",
-            currentPeriodEnd: new Date((stripeSub as any).current_period_end * 1000),
+            ...(periodEnd ? { currentPeriodEnd: new Date(periodEnd * 1000) } : {}),
             cancelAtPeriodEnd: stripeSub.cancel_at_period_end,
           },
         })
@@ -137,13 +131,14 @@ export async function POST(request: NextRequest) {
         const tier = tierFromPriceId(priceId)
         const status = mapStripeStatus(stripeSub.status)
 
+        const periodEnd = stripeSub.items.data[0]?.current_period_end
         await prisma.subscription.updateMany({
           where: { stripeCustomerId: customerId },
           data: {
             stripePriceId: priceId,
             ...(tier ? { tier } : {}),
             status,
-            currentPeriodEnd: new Date((stripeSub as any).current_period_end * 1000),
+            ...(periodEnd ? { currentPeriodEnd: new Date(periodEnd * 1000) } : {}),
             cancelAtPeriodEnd: stripeSub.cancel_at_period_end,
           },
         })
@@ -192,19 +187,21 @@ export async function POST(request: NextRequest) {
         if (!customerId) break
 
         // If this is a subscription invoice, update the period end
-        if ((invoice as any).subscription) {
+        const subDetails = invoice.parent?.subscription_details
+        if (subDetails?.subscription) {
           const subscriptionId =
-            typeof (invoice as any).subscription === "string"
-              ? (invoice as any).subscription
-              : (invoice as any).subscription.id
+            typeof subDetails.subscription === "string"
+              ? subDetails.subscription
+              : subDetails.subscription.id
 
-          const stripeSub = await stripe.subscriptions.retrieve(subscriptionId)
+          const stripeSub = await stripeClient.subscriptions.retrieve(subscriptionId)
+          const periodEnd = stripeSub.items.data[0]?.current_period_end
 
           await prisma.subscription.updateMany({
             where: { stripeCustomerId: customerId },
             data: {
               status: "ACTIVE",
-              currentPeriodEnd: new Date((stripeSub as any).current_period_end * 1000),
+              ...(periodEnd ? { currentPeriodEnd: new Date(periodEnd * 1000) } : {}),
             },
           })
         }

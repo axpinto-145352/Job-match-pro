@@ -19,7 +19,6 @@ import {
   FiCalendar,
   FiExternalLink,
   FiLoader,
-  FiRefreshCw,
   FiHash,
   FiFileText,
   FiSend,

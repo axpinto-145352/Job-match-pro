@@ -1,8 +1,25 @@
 import Stripe from 'stripe'
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-03-31.basil' as Stripe.LatestApiVersion,
-  typescript: true,
+function getStripeClient(): Stripe {
+  const key = process.env.STRIPE_SECRET_KEY
+  if (!key) {
+    throw new Error('STRIPE_SECRET_KEY environment variable is not set')
+  }
+  return new Stripe(key, {
+    apiVersion: '2026-01-28.clover' as Stripe.LatestApiVersion,
+    typescript: true,
+  })
+}
+
+export const stripe = new Proxy({} as Stripe, {
+  get(_target, prop) {
+    const client = getStripeClient()
+    const value = client[prop as keyof Stripe]
+    if (typeof value === 'function') {
+      return value.bind(client)
+    }
+    return value
+  },
 })
 
 export type TierName = 'FREE' | 'PRO' | 'PREMIUM' | 'ENTERPRISE'
@@ -22,17 +39,17 @@ export const tierConfig: Record<TierName, TierConfig> = {
   PRO: {
     name: 'PRO',
     priceMonthly: 29,
-    stripePriceId: process.env.STRIPE_PRO_PRICE_ID || '',
+    stripePriceId: process.env.STRIPE_PRO_PRICE_ID || null,
   },
   PREMIUM: {
     name: 'PREMIUM',
     priceMonthly: 79,
-    stripePriceId: process.env.STRIPE_PREMIUM_PRICE_ID || '',
+    stripePriceId: process.env.STRIPE_PREMIUM_PRICE_ID || null,
   },
   ENTERPRISE: {
     name: 'ENTERPRISE',
     priceMonthly: 199,
-    stripePriceId: process.env.STRIPE_ENTERPRISE_PRICE_ID || '',
+    stripePriceId: process.env.STRIPE_ENTERPRISE_PRICE_ID || null,
   },
 }
 

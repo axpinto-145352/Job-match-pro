@@ -123,26 +123,6 @@ const PRICING_TIERS: PricingTier[] = [
 ];
 
 // ---------------------------------------------------------------------------
-// Skeleton components
-// ---------------------------------------------------------------------------
-
-function PlanCardSkeleton() {
-  return (
-    <div className="bg-white rounded-xl border border-border p-6">
-      <div className="skeleton h-5 w-24 mb-2" />
-      <div className="skeleton h-9 w-20 mb-1" />
-      <div className="skeleton h-3 w-32 mb-6" />
-      <div className="space-y-3">
-        {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="skeleton h-3 w-full" />
-        ))}
-      </div>
-      <div className="skeleton h-10 w-full rounded-lg mt-6" />
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
 // Usage Progress Bar
 // ---------------------------------------------------------------------------
 

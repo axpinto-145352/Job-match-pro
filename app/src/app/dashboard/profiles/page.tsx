@@ -14,7 +14,6 @@ import {
   FiFileText,
   FiDollarSign,
   FiWifi,
-  FiArrowUp,
   FiLoader,
 } from "react-icons/fi";
 
@@ -649,32 +648,6 @@ function ProfileCard({
 }
 
 // ---------------------------------------------------------------------------
-// Upgrade Prompt
-// ---------------------------------------------------------------------------
-
-function UpgradePrompt({ current, max }: { current: number; max: number }) {
-  return (
-    <div className="bg-gradient-to-br from-primary/5 to-secondary/5 border border-primary/20 rounded-xl p-6 text-center">
-      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
-        <FiArrowUp size={20} className="text-primary" />
-      </div>
-      <h3 className="font-semibold text-foreground mb-1">Profile Limit Reached</h3>
-      <p className="text-sm text-muted mb-4">
-        You are using {current} of {max} available profiles. Upgrade your plan to
-        create more search profiles.
-      </p>
-      <a
-        href="/dashboard/billing"
-        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary-dark transition-colors"
-      >
-        <FiArrowUp size={14} />
-        Upgrade Plan
-      </a>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
 // Main Profiles Page
 // ---------------------------------------------------------------------------
 
@@ -683,9 +656,6 @@ export default function ProfilesPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingProfile, setEditingProfile] = useState<SearchProfile | null>(null);
-
-  // Profile limits - fetched from subscription context
-  const [maxProfiles, setMaxProfiles] = useState(1); // Default FREE
 
   const fetchProfiles = useCallback(async () => {
     setLoading(true);
@@ -701,27 +671,9 @@ export default function ProfilesPage() {
     }
   }, []);
 
-  const fetchLimits = useCallback(async () => {
-    try {
-      const res = await fetch("/api/billing/checkout", { method: "OPTIONS" }).catch(
-        () => null
-      );
-      // For now, we derive limits from profile count behavior
-      // The API will return 403 if limit is reached
-      // We can set a reasonable default or fetch subscription info
-    } catch {
-      // non-critical
-    }
-  }, []);
-
   useEffect(() => {
     fetchProfiles();
-    fetchLimits();
-  }, [fetchProfiles, fetchLimits]);
-
-  // Determine limit from count (the API enforces this server-side)
-  // We set generous client-side limits and let the server handle enforcement
-  const atLimit = false; // Server will reject if at limit
+  }, [fetchProfiles]);
 
   const handleDelete = async (id: string) => {
     try {
